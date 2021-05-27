@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 pnet = "0.27.2"
+num-traits = "0.2"
+num-derive = "0.3"

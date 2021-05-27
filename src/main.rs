@@ -1,7 +1,10 @@
 mod arp;
+mod client;
 mod interfaces;
 
 use arp::ArpMessage;
+use interfaces::Interface;
+use client::ArpClient;
 use pnet::packet::arp::ArpHardwareTypes;
 use pnet::packet::arp::{ArpPacket, MutableArpPacket};
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
@@ -9,19 +12,32 @@ use pnet::{
     datalink::{channel, Channel, MacAddr},
     packet::{arp::ArpOperation, MutablePacket, Packet},
 };
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 
 fn main() {
-    let interfaces = interfaces::get_all_interfaces();
-    let iface = interfaces::get_interface_by_guess(&interfaces).unwrap();
+    let interface = Interface::new();
 
-    let arp_message = ArpMessage::new_rarp_request(
-        iface.mac.unwrap(),
-        MacAddr::new(0xdc, 0xa6, 0x32, 0x27, 0x5b, 0xd8),
+    let arp_message = ArpMessage::new_arp_request(
+        interface.get_mac(),
+        Ipv4Addr::new(192, 168, 178, 20),
+        interface.get_ip(), //MacAddr::new(0x8c, 0x85, 0x90, 0x06, 0x68, 0xc9),
     );
 
-    arp_message.send(iface).unwrap();
-  /* 
+    arp_message.send(&interface).unwrap();
+
+    let mut client = ArpClient::new(&interface);
+
+    loop {
+        match client.next() {
+            Some(arp_message) => {
+                println!("le answer is {}", arp_message.source_hardware_address);
+                return;
+            }
+            None => {}
+        }
+    }
+
+    /*
     while true {
         let rx_buf = rx.next().unwrap();
         let received_eth = EthernetPacket::new(&rx_buf);

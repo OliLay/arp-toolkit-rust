@@ -1,9 +1,12 @@
 use std::{io::Error, net::Ipv4Addr, u16};
 
+use num_derive::FromPrimitive;    
+use num_traits::FromPrimitive;
+
 use pnet::{
-    datalink::{channel, Channel, NetworkInterface},
+    datalink::{channel, Channel},
     packet::{
-        arp::{ArpHardwareTypes, ArpOperation, MutableArpPacket},
+        arp::{ArpHardwareTypes, ArpOperation, ArpPacket, MutableArpPacket},
         ethernet::{
             EtherType,
             EtherTypes::{self},
@@ -13,19 +16,21 @@ use pnet::{
     },
     util::MacAddr,
 };
+
+use crate::interfaces::Interface;
 pub struct ArpMessage {
-    source_hardware_address: MacAddr,
-    source_protocol_address: Ipv4Addr,
+    pub source_hardware_address: MacAddr,
+    pub source_protocol_address: Ipv4Addr,
 
-    target_hardware_address: MacAddr,
-    target_protocol_address: Ipv4Addr,
+    pub target_hardware_address: MacAddr,
+    pub target_protocol_address: Ipv4Addr,
 
-    ethertype: EtherType,
-    operation: Operation,
+    pub ethertype: EtherType,
+    pub operation: Operation,
 }
 
-#[derive(Copy, Clone)]
-enum Operation {
+#[derive(Copy, Clone, FromPrimitive)]
+pub enum Operation {
     ArpRequest = 0x1,
     ArpResponse = 0x2,
     RarpRequest = 0x3,
@@ -112,8 +117,8 @@ impl ArpMessage {
         )
     }
 
-    pub fn send(&self, interface: &NetworkInterface) -> Result<(), Error> {
-        let mut tx = match channel(&interface, Default::default()) {
+    pub fn send(&self, interface: &Interface) -> Result<(), Error> {
+        let mut tx = match channel(&interface.get_raw_interface(), Default::default()) {
             Ok(Channel::Ethernet(tx, _)) => tx,
             Ok(_) => panic!("Unknown channel type"),
             Err(err) => panic!("Error when opening channel: {}", err),
@@ -123,7 +128,7 @@ impl ArpMessage {
         let mut eth_packet = MutableEthernetPacket::new(&mut eth_buf).unwrap();
 
         eth_packet.set_destination(MacAddr::broadcast());
-        eth_packet.set_source(interface.mac.unwrap());
+        eth_packet.set_source(interface.get_mac());
         eth_packet.set_ethertype(self.ethertype);
 
         let mut rarp_buf = vec![0; 28];
@@ -142,5 +147,24 @@ impl ArpMessage {
         eth_packet.set_payload(rarp_packet.packet_mut());
 
         tx.send_to(eth_packet.packet(), None).unwrap()
+    }
+}
+
+impl From<ArpPacket<'_>> for ArpMessage {
+    fn from(arp_packet: ArpPacket) -> Self {
+        let operation_raw = arp_packet.get_operation().0;
+        let operation = match FromPrimitive::from_u16(operation_raw) {
+            Some(op) => op,
+            None => panic!("Could not cast operation raw value {} to enum.", operation_raw)
+        };
+
+        ArpMessage::new(
+            arp_packet.get_protocol_type(),
+            arp_packet.get_sender_hw_addr(),
+            arp_packet.get_sender_proto_addr(),
+            arp_packet.get_target_hw_addr(),
+            arp_packet.get_target_proto_addr(),
+            operation
+        )
     }
 }
