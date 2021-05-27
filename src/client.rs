@@ -1,3 +1,4 @@
+use crate::interfaces::MacAddr;
 use crate::{arp::ArpMessage, interfaces::Interface};
 use std::time::Duration;
 use std::{
@@ -11,7 +12,6 @@ use pnet::{
         arp::ArpPacket,
         ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket},
     },
-    util::MacAddr,
 };
 
 pub struct ArpClient {
@@ -74,11 +74,11 @@ impl ArpClient {
         timeout: Option<Duration>,
     ) -> Result<MacAddr, Error> {
         let message =
-            ArpMessage::new_arp_request(self.interface.get_mac(), self.interface.get_ip(), ip_addr);
+            ArpMessage::new_arp_request(self.interface.get_mac().into(), self.interface.get_ip(), ip_addr);
 
         self.send_request(timeout, message, &|arp_message| {
             return if arp_message.source_protocol_address == ip_addr {
-                Some(arp_message.source_hardware_address)
+                Some(arp_message.source_hardware_address.into())
             } else {
                 None
             };
@@ -90,10 +90,11 @@ impl ArpClient {
         mac_addr: MacAddr,
         timeout: Option<Duration>,
     ) -> Result<Ipv4Addr, Error> {
-        let message = ArpMessage::new_rarp_request(self.interface.get_mac(), mac_addr);
+        let message = ArpMessage::new_rarp_request(self.interface.get_mac().into(), mac_addr.into());
 
         self.send_request(timeout, message, &|arp_message| {
-            if arp_message.source_hardware_address == mac_addr {
+            let source_mac: MacAddr = arp_message.source_hardware_address.into();
+            if  source_mac == mac_addr {
                 Some(arp_message.target_protocol_address)
             } else {
                 None

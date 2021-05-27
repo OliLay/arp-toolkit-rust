@@ -1,6 +1,5 @@
-use lib::client::ArpClient;
+use lib::{client::ArpClient, interfaces::MacAddr};
 use std::net::Ipv4Addr;
-use pnet::util::MacAddr;
 
 fn main() {
     let searched_mac = MacAddr::new(0xdc, 0xa6, 0x32, 0x27, 0x5b, 0xd8);

@@ -1,9 +1,5 @@
+use pnet::datalink::{interfaces, NetworkInterface};
 use std::net::{IpAddr, Ipv4Addr};
-
-use pnet::{
-    datalink::{interfaces, NetworkInterface},
-    util::MacAddr,
-};
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Interface {
@@ -38,7 +34,7 @@ impl Interface {
     }
 
     pub fn get_mac(&self) -> MacAddr {
-        self.network_interface.as_ref().unwrap().mac.unwrap()
+        self.network_interface.as_ref().unwrap().mac.unwrap().into()
     }
 
     pub fn get_raw_interface(&self) -> &NetworkInterface {
@@ -71,5 +67,42 @@ impl Interface {
             Some(iface) => Some(iface.clone()),
             None => None,
         }
+    }
+}
+
+// redefinition, so that as a user pnet does not need to be imported
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub struct MacAddr(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
+
+impl MacAddr {
+    pub fn new(a: u8, b: u8, c: u8, d: u8, e: u8, f: u8) -> Self {
+        MacAddr(a, b, c, d, e, f)
+    }
+}
+
+impl std::fmt::Display for MacAddr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,  "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", self.0, self.1, self.2, self.3, self.4, self.5)
+    }
+}
+
+impl From<pnet::util::MacAddr> for MacAddr {
+    fn from(pnet_mac_addr: pnet::util::MacAddr) -> Self {
+        MacAddr(
+            pnet_mac_addr.0,
+            pnet_mac_addr.1,
+            pnet_mac_addr.2,
+            pnet_mac_addr.3,
+            pnet_mac_addr.4,
+            pnet_mac_addr.5,
+        )
+    }
+}
+
+impl From<MacAddr> for pnet::util::MacAddr {
+    fn from(mac_addr: MacAddr) -> Self {
+        pnet::util::MacAddr(
+            mac_addr.0, mac_addr.1, mac_addr.2, mac_addr.3, mac_addr.4, mac_addr.5,
+        )
     }
 }

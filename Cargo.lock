@@ -19,6 +19,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "arp-toolkit-examples"
+version = "0.1.0"
+dependencies = [
+ "arp-toolkit",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

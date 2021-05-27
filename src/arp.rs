@@ -128,7 +128,7 @@ impl ArpMessage {
         let mut eth_packet = MutableEthernetPacket::new(&mut eth_buf).unwrap();
 
         eth_packet.set_destination(MacAddr::broadcast());
-        eth_packet.set_source(interface.get_mac());
+        eth_packet.set_source(interface.get_mac().into());
         eth_packet.set_ethertype(self.ethertype);
 
         let mut rarp_buf = vec![0; 28];
