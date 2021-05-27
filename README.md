@@ -1,4 +1,5 @@
 # arp-toolkit
+![crates.io](https://img.shields.io/crates/v/arp-toolkit.svg)
 
 Toolkit for (R)ARP , the `(Reverse) Address Resolution Protocol`.
 
