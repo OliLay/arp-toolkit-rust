@@ -1,35 +1,26 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use pnet::{datalink::{interfaces, NetworkInterface}, util::MacAddr};
+use pnet::{
+    datalink::{interfaces, NetworkInterface},
+    util::MacAddr,
+};
 
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Interface {
-    interfaces: Vec<NetworkInterface>,
     network_interface: Option<NetworkInterface>,
 }
 
 impl Interface {
     pub fn new() -> Self {
         Interface {
-            interfaces: Interface::get_all_interfaces(),
-            network_interface: None
+            network_interface: Interface::get_interface_by_guess(),
         }
     }
 
- //   pub fn new_from_name(name: String) -> Self {
-   //     let interfaces = Interface::get_all_interfaces();
-
-     //   Interface {
-       //     network_interface: Interface::get_interface_by_name(interfaces, &name),
-       // }
-   // }
-
-    fn assign_interface(&'static mut self) {
-        let iface = self.assign_interface_by_guess();
-        self.network_interface = iface;
-    }
-        
     pub fn get_ip(&self) -> Ipv4Addr {
-        self.network_interface.unwrap()
+        self.network_interface
+            .as_ref()
+            .unwrap()
             .ips
             .iter()
             .find(|ip| ip.is_ipv4())
@@ -41,41 +32,40 @@ impl Interface {
     }
 
     pub fn get_mac(&self) -> MacAddr {
-        self.network_interface.unwrap().mac.unwrap()
+        self.network_interface.as_ref().unwrap().mac.unwrap()
     }
 
     pub fn get_raw_interface(&self) -> &NetworkInterface {
-        &self.network_interface.unwrap()
+        &self.network_interface.as_ref().unwrap()
     }
 
     fn get_all_interfaces() -> Vec<NetworkInterface> {
         interfaces()
     }
 
-    fn assign_interface_by_guess(&self) -> Option<NetworkInterface> {
-        let considered_ifaces = self.interfaces
-            .iter()
+    fn get_interface_by_guess() -> Option<NetworkInterface> {
+        let considered_ifaces = Interface::get_all_interfaces()
+            .into_iter()
             .filter(|iface| !iface.is_loopback() && iface.is_up() && !iface.ips.is_empty())
-            .collect::<Vec<&NetworkInterface>>();
+            .collect::<Vec<NetworkInterface>>();
 
         match considered_ifaces.first() {
-            Some(iface) => Some(**iface),
+            Some(iface) => Some(iface.clone()),
             None => None,
         }
     }
 
-    fn get_interface_by_name(
-        interfaces: Vec<NetworkInterface>,
-        name: &str,
-    ) -> Option<NetworkInterface> {
-        let considered_ifaces = interfaces
-            .iter()
+    
+    fn get_interface_by_name(&self, name: &str) -> Option<NetworkInterface> {
+        let considered_ifaces = Interface::get_all_interfaces()
+            .into_iter()
             .filter(|iface| iface.name == *name)
-            .collect::<Vec<&NetworkInterface>>();
+            .collect::<Vec<NetworkInterface>>();
 
         match considered_ifaces.first() {
-            Some(iface) => Some(**iface),
+            Some(iface) => Some(iface.clone()),
             None => None,
         }
     }
+    
 }

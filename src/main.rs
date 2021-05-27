@@ -17,10 +17,11 @@ use std::net::{IpAddr, Ipv4Addr};
 fn main() {
     let interface = Interface::new();
 
-    let arp_message = ArpMessage::new_arp_request(
+    let searched_mac = MacAddr::new(0xdc, 0xa6, 0x32, 0x27, 0x5b, 0xd8);
+
+    let arp_message = ArpMessage::new_rarp_request(
         interface.get_mac(),
-        Ipv4Addr::new(192, 168, 178, 20),
-        interface.get_ip(), //MacAddr::new(0x8c, 0x85, 0x90, 0x06, 0x68, 0xc9),
+        searched_mac,
     );
 
     arp_message.send(&interface).unwrap();
@@ -29,9 +30,12 @@ fn main() {
 
     loop {
         match client.next() {
-            Some(arp_message) => {
-                println!("le answer is {}", arp_message.source_hardware_address);
+            Some(arp_message) if arp_message.source_hardware_address == searched_mac => {
+                println!("le answer is {}", arp_message.source_protocol_address);
                 return;
+            }
+            Some(_) => {
+                println!("Received ARP message, but not an answer to before.")
             }
             None => {}
         }

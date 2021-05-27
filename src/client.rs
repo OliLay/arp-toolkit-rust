@@ -1,8 +1,6 @@
-use std::collections::btree_set::Intersection;
-
 use crate::{arp::ArpMessage, interfaces::Interface};
 use pnet::{
-    datalink::{channel, Channel, DataLinkReceiver, NetworkInterface},
+    datalink::{channel, Channel, DataLinkReceiver},
     packet::{
         arp::ArpPacket,
         ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket},
@@ -11,6 +9,7 @@ use pnet::{
 
 pub struct ArpClient {
     rx_channel: Box<dyn DataLinkReceiver>,
+    interface: Interface,
 }
 
 impl ArpClient {
@@ -21,7 +20,7 @@ impl ArpClient {
             Err(err) => panic!("Error when opening channel: {}", err),
         };
 
-        ArpClient { rx_channel: rx }
+        ArpClient { rx_channel: rx, interface: interface.clone() }
     }
 
     fn next_ethernet_frame(&mut self) -> Option<(EthernetPacket, &[u8])> {
