@@ -1,6 +1,10 @@
-use std::{io::Error, net::Ipv4Addr};
-
 use crate::{arp::ArpMessage, interfaces::Interface};
+use std::time::Duration;
+use std::{
+    io::{Error, ErrorKind},
+    net::Ipv4Addr,
+    time::Instant,
+};
 use pnet::{
     datalink::{channel, Channel, DataLinkReceiver},
     packet::{
@@ -33,41 +37,68 @@ impl ArpClient {
         }
     }
 
-    pub fn ip_to_mac(&mut self, ip_addr: Ipv4Addr) -> Result<MacAddr, Error> {
+    fn send_request<T>(
+        &mut self,
+        timeout: Option<Duration>,
+        message: ArpMessage,
+        check_answer: &dyn Fn(ArpMessage) -> Option<T>,
+    ) -> Result<T, Error> {
+        let unpacked_timeout = match timeout {
+            Some(t) => t,
+            // use Duration::MAX after integrated into Rust stable
+            None => Duration::from_secs(u64::MAX),
+        };
+
+        match message.send(&self.interface) {
+            Err(e) => return Err(e),
+            _ => {}
+        }
+
+        let start_time = Instant::now();
+        while Instant::now() - start_time < unpacked_timeout {
+            match self.next() {
+                Some(arp_message) => match check_answer(arp_message) {
+                    Some(result) => return Ok(result),
+                    None => {}
+                },
+                _ => {}
+            }
+        }
+
+        return Err(Error::new(ErrorKind::TimedOut, "Timeout"));
+    }
+
+    pub fn ip_to_mac(
+        &mut self,
+        ip_addr: Ipv4Addr,
+        timeout: Option<Duration>,
+    ) -> Result<MacAddr, Error> {
         let message =
             ArpMessage::new_arp_request(self.interface.get_mac(), self.interface.get_ip(), ip_addr);
 
-        match message.send(&self.interface) {
-            Err(e) => return Err(e),
-            _ => {}
-        }
-
-        loop {
-            match self.next() {
-                Some(arp_message) if arp_message.source_protocol_address == ip_addr => {
-                    return Ok(arp_message.source_hardware_address)
-                }
-                _ => {}
-            }
-        }
+        self.send_request(timeout, message, &|arp_message| {
+            return if arp_message.source_protocol_address == ip_addr {
+                Some(arp_message.source_hardware_address)
+            } else {
+                None
+            };
+        })
     }
 
-    pub fn mac_to_ip(&mut self, mac_addr: MacAddr) -> Result<Ipv4Addr, Error> {
+    pub fn mac_to_ip(
+        &mut self,
+        mac_addr: MacAddr,
+        timeout: Option<Duration>,
+    ) -> Result<Ipv4Addr, Error> {
         let message = ArpMessage::new_rarp_request(self.interface.get_mac(), mac_addr);
 
-        match message.send(&self.interface) {
-            Err(e) => return Err(e),
-            _ => {}
-        }
-
-        loop {
-            match self.next() {
-                Some(arp_message) if arp_message.source_hardware_address == mac_addr => {
-                    return Ok(arp_message.target_protocol_address)
-                }
-                _ => {}
+        self.send_request(timeout, message, &|arp_message| {
+            if arp_message.source_hardware_address == mac_addr {
+                Some(arp_message.target_protocol_address)
+            } else {
+                None
             }
-        }
+        })
     }
 
     pub fn next(&mut self) -> Option<ArpMessage> {

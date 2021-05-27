@@ -17,6 +17,12 @@ impl Interface {
         }
     }
 
+    pub fn new_by_name(interface_name: String) -> Self {
+        Interface {
+            network_interface: Interface::get_interface_by_name(&interface_name),
+        }
+    }
+
     pub fn get_ip(&self) -> Ipv4Addr {
         self.network_interface
             .as_ref()
@@ -55,8 +61,7 @@ impl Interface {
         }
     }
 
-    
-    fn get_interface_by_name(&self, name: &str) -> Option<NetworkInterface> {
+    fn get_interface_by_name(name: &str) -> Option<NetworkInterface> {
         let considered_ifaces = Interface::get_all_interfaces()
             .into_iter()
             .filter(|iface| iface.name == *name)
@@ -67,5 +72,4 @@ impl Interface {
             None => None,
         }
     }
-    
 }
