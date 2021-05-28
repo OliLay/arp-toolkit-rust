@@ -1,4 +1,6 @@
-use lib::{client::ArpClient, interfaces::MacAddr};
+extern crate libarp;
+
+use libarp::{client::ArpClient, interfaces::MacAddr};
 use std::net::Ipv4Addr;
 
 fn main() {
