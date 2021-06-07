@@ -1,17 +1,17 @@
 use crate::interfaces::MacAddr;
 use crate::{arp::ArpMessage, interfaces::Interface};
-use std::time::Duration;
-use std::{
-    io::{Error, ErrorKind},
-    net::Ipv4Addr,
-    time::Instant,
-};
 use pnet::{
     datalink::{channel, Channel, DataLinkReceiver},
     packet::{
         arp::ArpPacket,
         ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket},
     },
+};
+use std::time::Duration;
+use std::{
+    io::{Error, ErrorKind},
+    net::Ipv4Addr,
+    time::Instant,
 };
 
 pub struct ArpClient {
@@ -22,6 +22,15 @@ pub struct ArpClient {
 impl ArpClient {
     pub fn new() -> Self {
         ArpClient::new_with_iface(&Interface::new())
+    }
+
+    pub fn new_with_iface_name(iface_name: &str) -> Option<Self> {
+        let iface = Interface::new_by_name(iface_name);
+
+        match iface {
+            Some(iface) => Some(ArpClient::new_with_iface(&iface)),
+            None => None,
+        }
     }
 
     pub fn new_with_iface(interface: &Interface) -> Self {
@@ -37,7 +46,15 @@ impl ArpClient {
         }
     }
 
-    fn send_request<T>(
+    pub fn send_request(
+        &mut self,
+        timeout: Option<Duration>,
+        message: ArpMessage,
+    ) -> Result<ArpMessage, Error> {
+        self.send_request_with_check(timeout, message, &|arp_message| Some(arp_message))
+    }
+
+    pub fn send_request_with_check<T>(
         &mut self,
         timeout: Option<Duration>,
         message: ArpMessage,
@@ -56,7 +73,7 @@ impl ArpClient {
 
         let start_time = Instant::now();
         while Instant::now() - start_time < unpacked_timeout {
-            match self.next() {
+            match self.receive_next() {
                 Some(arp_message) => match check_answer(arp_message) {
                     Some(result) => return Ok(result),
                     None => {}
@@ -73,10 +90,13 @@ impl ArpClient {
         ip_addr: Ipv4Addr,
         timeout: Option<Duration>,
     ) -> Result<MacAddr, Error> {
-        let message =
-            ArpMessage::new_arp_request(self.interface.get_mac().into(), self.interface.get_ip(), ip_addr);
+        let message = ArpMessage::new_arp_request(
+            self.interface.get_mac().into(),
+            self.interface.get_ip(),
+            ip_addr,
+        );
 
-        self.send_request(timeout, message, &|arp_message| {
+        self.send_request_with_check(timeout, message, &|arp_message| {
             return if arp_message.source_protocol_address == ip_addr {
                 Some(arp_message.source_hardware_address.into())
             } else {
@@ -90,11 +110,12 @@ impl ArpClient {
         mac_addr: MacAddr,
         timeout: Option<Duration>,
     ) -> Result<Ipv4Addr, Error> {
-        let message = ArpMessage::new_rarp_request(self.interface.get_mac().into(), mac_addr.into());
+        let message =
+            ArpMessage::new_rarp_request(self.interface.get_mac().into(), mac_addr.into());
 
-        self.send_request(timeout, message, &|arp_message| {
+        self.send_request_with_check(timeout, message, &|arp_message| {
             let source_mac: MacAddr = arp_message.source_hardware_address.into();
-            if  source_mac == mac_addr {
+            if source_mac == mac_addr {
                 Some(arp_message.target_protocol_address)
             } else {
                 None
@@ -102,7 +123,11 @@ impl ArpClient {
         })
     }
 
-    pub fn next(&mut self) -> Option<ArpMessage> {
+    pub fn send(&self, arp_message: &ArpMessage) -> Result<(), Error> {
+        arp_message.send(&self.interface)
+    }
+
+    pub fn receive_next(&mut self) -> Option<ArpMessage> {
         loop {
             let rx_ethernet_packet = self.next_ethernet_frame();
 

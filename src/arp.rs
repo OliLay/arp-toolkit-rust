@@ -1,6 +1,7 @@
+use crate::interfaces::{Interface, MacAddr};
 use std::{io::Error, net::Ipv4Addr, u16};
 
-use num_derive::FromPrimitive;    
+use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
 use pnet::{
@@ -14,10 +15,8 @@ use pnet::{
         },
         MutablePacket, Packet,
     },
-    util::MacAddr,
 };
 
-use crate::interfaces::Interface;
 pub struct ArpMessage {
     pub source_hardware_address: MacAddr,
     pub source_protocol_address: Ipv4Addr,
@@ -127,24 +126,24 @@ impl ArpMessage {
         let mut eth_buf = vec![0; 42];
         let mut eth_packet = MutableEthernetPacket::new(&mut eth_buf).unwrap();
 
-        eth_packet.set_destination(MacAddr::broadcast());
+        eth_packet.set_destination(MacAddr::new(0xff, 0xff, 0xff, 0xff, 0xff, 0xff).into());
         eth_packet.set_source(interface.get_mac().into());
         eth_packet.set_ethertype(self.ethertype);
 
-        let mut rarp_buf = vec![0; 28];
-        let mut rarp_packet = MutableArpPacket::new(&mut rarp_buf).unwrap();
+        let mut arp_buf = vec![0; 28];
+        let mut arp_packet = MutableArpPacket::new(&mut arp_buf).unwrap();
 
-        rarp_packet.set_hardware_type(ArpHardwareTypes::Ethernet);
-        rarp_packet.set_protocol_type(EtherTypes::Ipv4);
-        rarp_packet.set_hw_addr_len(0x06);
-        rarp_packet.set_proto_addr_len(0x04);
-        rarp_packet.set_operation(ArpOperation::new(self.operation as u16));
-        rarp_packet.set_sender_hw_addr(self.source_hardware_address);
-        rarp_packet.set_sender_proto_addr(self.source_protocol_address);
-        rarp_packet.set_target_hw_addr(self.target_hardware_address);
-        rarp_packet.set_target_proto_addr(self.target_protocol_address);
+        arp_packet.set_hardware_type(ArpHardwareTypes::Ethernet);
+        arp_packet.set_protocol_type(EtherTypes::Ipv4);
+        arp_packet.set_hw_addr_len(0x06);
+        arp_packet.set_proto_addr_len(0x04);
+        arp_packet.set_operation(ArpOperation::new(self.operation as u16));
+        arp_packet.set_sender_hw_addr(self.source_hardware_address.into());
+        arp_packet.set_sender_proto_addr(self.source_protocol_address);
+        arp_packet.set_target_hw_addr(self.target_hardware_address.into());
+        arp_packet.set_target_proto_addr(self.target_protocol_address);
 
-        eth_packet.set_payload(rarp_packet.packet_mut());
+        eth_packet.set_payload(arp_packet.packet_mut());
 
         tx.send_to(eth_packet.packet(), None).unwrap()
     }
@@ -155,16 +154,19 @@ impl From<ArpPacket<'_>> for ArpMessage {
         let operation_raw = arp_packet.get_operation().0;
         let operation = match FromPrimitive::from_u16(operation_raw) {
             Some(op) => op,
-            None => panic!("Could not cast operation raw value {} to enum.", operation_raw)
+            None => panic!(
+                "Could not cast operation raw value {} to enum.",
+                operation_raw
+            ),
         };
 
         ArpMessage::new(
             arp_packet.get_protocol_type(),
-            arp_packet.get_sender_hw_addr(),
+            arp_packet.get_sender_hw_addr().into(),
             arp_packet.get_sender_proto_addr(),
-            arp_packet.get_target_hw_addr(),
+            arp_packet.get_target_hw_addr().into(),
             arp_packet.get_target_proto_addr(),
-            operation
+            operation,
         )
     }
 }

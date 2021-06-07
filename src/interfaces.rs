@@ -13,9 +13,14 @@ impl Interface {
         }
     }
 
-    pub fn new_by_name(interface_name: String) -> Self {
-        Interface {
-            network_interface: Interface::get_interface_by_name(&interface_name),
+    pub fn new_by_name(interface_name: &str) -> Option<Self> {
+        let iface = Interface::get_interface_by_name(&interface_name);
+
+        match iface {
+            Some(_) => Some(Interface {
+                network_interface: iface,
+            }),
+            None => None,
         }
     }
 
@@ -82,7 +87,11 @@ impl MacAddr {
 
 impl std::fmt::Display for MacAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,  "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", self.0, self.1, self.2, self.3, self.4, self.5)
+        write!(
+            f,
+            "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+            self.0, self.1, self.2, self.3, self.4, self.5
+        )
     }
 }
 
