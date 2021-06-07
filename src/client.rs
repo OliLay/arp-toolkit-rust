@@ -19,6 +19,8 @@ pub struct ArpClient {
     interface: Interface,
 }
 
+
+
 impl ArpClient {
     pub fn new() -> Self {
         ArpClient::new_with_iface(&Interface::new())
@@ -46,15 +48,17 @@ impl ArpClient {
         }
     }
 
-    pub fn send_request(
+    #[maybe_async::maybe_async]
+    pub async fn send_request(
         &mut self,
         timeout: Option<Duration>,
         message: ArpMessage,
     ) -> Result<ArpMessage, Error> {
-        self.send_request_with_check(timeout, message, &|arp_message| Some(arp_message))
+        self.send_request_with_check(timeout, message, &|arp_message| Some(arp_message)).await
     }
 
-    pub fn send_request_with_check<T>(
+    #[maybe_async::maybe_async]
+    pub async fn send_request_with_check<T>(
         &mut self,
         timeout: Option<Duration>,
         message: ArpMessage,
@@ -73,7 +77,7 @@ impl ArpClient {
 
         let start_time = Instant::now();
         while Instant::now() - start_time < unpacked_timeout {
-            match self.receive_next() {
+            match self.receive_next().await {
                 Some(arp_message) => match check_answer(arp_message) {
                     Some(result) => return Ok(result),
                     None => {}
@@ -85,7 +89,8 @@ impl ArpClient {
         return Err(Error::new(ErrorKind::TimedOut, "Timeout"));
     }
 
-    pub fn ip_to_mac(
+    #[maybe_async::maybe_async]
+    pub async fn ip_to_mac(
         &mut self,
         ip_addr: Ipv4Addr,
         timeout: Option<Duration>,
@@ -102,10 +107,11 @@ impl ArpClient {
             } else {
                 None
             };
-        })
+        }).await
     }
 
-    pub fn mac_to_ip(
+    #[maybe_async::maybe_async]
+    pub async fn mac_to_ip(
         &mut self,
         mac_addr: MacAddr,
         timeout: Option<Duration>,
@@ -120,14 +126,16 @@ impl ArpClient {
             } else {
                 None
             }
-        })
+        }).await
     }
 
-    pub fn send(&self, arp_message: &ArpMessage) -> Result<(), Error> {
+    #[maybe_async::maybe_async]
+    pub async fn send(&self, arp_message: &ArpMessage) -> Result<(), Error> {
         arp_message.send(&self.interface)
     }
 
-    pub fn receive_next(&mut self) -> Option<ArpMessage> {
+    #[maybe_async::maybe_async]
+    pub async fn receive_next(&mut self) -> Option<ArpMessage> {
         loop {
             let rx_ethernet_packet = self.next_ethernet_frame();
 

@@ -11,15 +11,19 @@ To build it, use
 cargo build
 ```
 
+**Note**: only the `async-example` is built per default. To build the `sync-example`, change to the directory and run `cargo build`. This is because sync and async can not be used in the same crate simultaneously.
+
 ## Usage
-The `example/example.rs` file shows high-level usage of the class `ArpClient`. For example, it illustrates how to get the MAC address for the corresponding IP and vice versa with a single function call. 
+The `sync-example/sync-example.rs` file shows high-level usage of the class `ArpClient` using blocking IO. For example, it illustrates how to get the MAC address for the corresponding IP and vice versa with a single function call. `async-example/async-example.rs` shows the same, but with `async` IO.
 
-It is also possible to directly send and receive (R)ARP packages. To see how this works, take a look at `lib/arp.rs`
+It is also possible to directly send, receive and manipulate (R)ARP packages. To see how this works, take a look at the examples and the method `resolve_advanced`.
 
-**Note**: As this library uses Raw sockets, either [set](https://squidarth.com/networking/systems/rc/2018/05/28/using-raw-sockets.html) the `CAP_NET_RAW` capability or run your program with `sudo`. (not recommended)
+To use **blocking** IO instead of **async** IO, activate the feature `sync` in your `Cargo.toml` like this: 
+```
+[dependencies]
+arp-toolkit = {version = x.x.x, features = ["sync"]}
+```
 
-## Development
-- [x] Basic ARP functionality implemented ((R)ARP requests/responses)
-- [x] Sync client (with timeouts)
-- [ ] Async client
-- [ ] Server
+
+**Important note**: As this library uses Raw sockets, either [set](https://squidarth.com/networking/systems/rc/2018/05/28/using-raw-sockets.html) the `CAP_NET_RAW` capability or run your program with `sudo`. (not recommended)
+

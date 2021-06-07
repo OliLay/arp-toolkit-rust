@@ -1,6 +1,6 @@
 [package]
 name = "arp-toolkit"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Oliver Layer <olilay@live.de>"]
 edition = "2018"
 license = "MIT"
@@ -21,3 +21,8 @@ path = "lib.rs"
 pnet = "0.28"
 num-traits = "0.2"
 num-derive = "0.3"
+maybe-async = {version = "0.2.6", features=[]}
+
+[features]
+default = []
+sync = ["maybe-async/is_sync"]
