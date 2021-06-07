@@ -25,6 +25,14 @@ fn resolve_advanced(mac_addr: MacAddr, ip_addr: Ipv4Addr) {
     let iface = Interface::new_by_name("enp4s0").unwrap();
     let mut client = ArpClient::new_with_iface(&iface);
 
+    /*
+    This is just for demonstrating the API.
+    The following code may not lead to the same result as the previous code,
+    as checking if the ARP response is related to us (or if it even is a response) is omitted.
+    One would have to implement these checks manually, similar to how it is done in the
+    client's mac_to_ip and ip_to_mac methods. 
+    */ 
+
     let arp_request = ArpMessage::new_arp_request(iface.get_mac().into(), iface.get_ip(), ip_addr);
     let result = client.send_request(None, arp_request).unwrap();
     println!(

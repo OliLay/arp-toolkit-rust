@@ -11,7 +11,7 @@ dependencies = [
 
 [[package]]
 name = "arp-toolkit"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "maybe-async",
  "num-derive",
@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "arp-toolkit-sync-example"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "arp-toolkit",
 ]
