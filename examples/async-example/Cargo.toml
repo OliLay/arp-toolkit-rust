@@ -12,4 +12,4 @@ path = "async-example.rs"
 
 [dependencies]
 futures = "0.3"
-arp-toolkit = {path = "../src", features = []}
+arp-toolkit = {path = "../../src", features = []}
