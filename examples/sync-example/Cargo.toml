@@ -11,6 +11,6 @@ name = "sync-example"
 path = "sync-example.rs"
 
 [dependencies]
-arp-toolkit = {path = "../src", features = ["sync"]}
+arp-toolkit = {path = "../../src", features = ["sync"]}
 
 [workspace]

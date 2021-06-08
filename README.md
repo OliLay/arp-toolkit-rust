@@ -1,4 +1,4 @@
-# arp-toolkit ![](https://github.com/olilay/arp-toolkit-rust/actions/workflows/build.yml/badge.svg) [![crates.io](https://img.shields.io/crates/v/arp-toolkit.svg)](https://crates.io/crates/arp-toolkit) 
+# arp-toolkit [![Build](https://github.com/OliLay/arp-toolkit-rust/actions/workflows/build.yml/badge.svg)](https://github.com/OliLay/arp-toolkit-rust/actions/workflows/build.yml) [![crates.io](https://img.shields.io/crates/v/arp-toolkit.svg)](https://crates.io/crates/arp-toolkit) 
 
 
 Toolkit for (R)ARP , the `(Reverse) Address Resolution Protocol`. 
