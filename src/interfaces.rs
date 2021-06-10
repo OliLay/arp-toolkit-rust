@@ -1,18 +1,22 @@
 use pnet::datalink::{interfaces, NetworkInterface};
 use std::net::{IpAddr, Ipv4Addr};
 
+/// Represents a network interface. 
+/// Wraps pnet's `NetworkInterface` struct for better convenience.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Interface {
     network_interface: Option<NetworkInterface>,
 }
 
 impl Interface {
+    /// Selects the first "best-suited" interface found.
     pub fn new() -> Self {
         Interface {
             network_interface: Interface::get_interface_by_guess(),
         }
     }
 
+    /// Selects the interface with the name `interface_name`.
     pub fn new_by_name(interface_name: &str) -> Option<Self> {
         let iface = Interface::get_interface_by_name(&interface_name);
 
@@ -24,7 +28,8 @@ impl Interface {
         }
     }
 
-    pub fn get_ip(&self) -> Ipv4Addr {
+    /// Returns the IPv4 address of the interface.
+    pub fn get_ip(&self) -> Option<Ipv4Addr> {
         self.network_interface
             .as_ref()
             .unwrap()
@@ -32,16 +37,18 @@ impl Interface {
             .iter()
             .find(|ip| ip.is_ipv4())
             .map(|ip| match ip.ip() {
-                IpAddr::V4(ip) => ip,
-                _ => panic!("Interface only supports IPv6, but IPv4 address was requested."),
+                IpAddr::V4(ip) => Some(ip),
+                _ => None
             })
             .unwrap()
     }
 
+    // Returns the MAC address assigned to the interface.
     pub fn get_mac(&self) -> MacAddr {
         self.network_interface.as_ref().unwrap().mac.unwrap().into()
     }
 
+    // Returns the raw `pnet` interface instance related to the interface.
     pub fn get_raw_interface(&self) -> &NetworkInterface {
         &self.network_interface.as_ref().unwrap()
     }
@@ -75,7 +82,7 @@ impl Interface {
     }
 }
 
-// redefinition, so that as a user pnet does not need to be imported
+/// Redefinition of the pnet `MacAddr`, so that as a user pnet does not need to be imported
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct MacAddr(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
 

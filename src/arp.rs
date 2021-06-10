@@ -1,5 +1,5 @@
 use crate::interfaces::{Interface, MacAddr};
-use std::{io::Error, net::Ipv4Addr, u16};
+use std::{io::{Error, ErrorKind}, net::Ipv4Addr, u16};
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -37,7 +37,8 @@ pub enum Operation {
 }
 
 impl ArpMessage {
-    fn new(
+    /// Constructs a new ARP message with arbitrary field contents.
+    pub fn new(
         ethertype: EtherType,
         source_hardware_address: MacAddr,
         source_protocol_address: Ipv4Addr,
@@ -55,6 +56,7 @@ impl ArpMessage {
         }
     }
 
+    /// Constructs a new ARP request message.
     pub fn new_arp_request(
         source_hardware_address: MacAddr,
         source_protocol_address: Ipv4Addr,
@@ -70,6 +72,7 @@ impl ArpMessage {
         )
     }
 
+    /// Constructs a new ARP response message.
     pub fn new_arp_response(
         source_hardware_address: MacAddr,
         source_protocol_address: Ipv4Addr,
@@ -86,6 +89,7 @@ impl ArpMessage {
         )
     }
 
+    /// Constructs a new RARP request message.
     pub fn new_rarp_request(
         source_hardware_address: MacAddr,
         target_hardware_address: MacAddr,
@@ -100,6 +104,7 @@ impl ArpMessage {
         )
     }
 
+    /// Constructs a new RARP response message.
     pub fn new_rarp_response(
         source_hardware_address: MacAddr,
         source_protocol_address: Ipv4Addr,
@@ -116,11 +121,14 @@ impl ArpMessage {
         )
     }
 
+    /// Sends the message on the given interface.
+    /// # Errors
+    /// Returns an error when sending fails.
     pub fn send(&self, interface: &Interface) -> Result<(), Error> {
         let mut tx = match channel(&interface.get_raw_interface(), Default::default()) {
             Ok(Channel::Ethernet(tx, _)) => tx,
-            Ok(_) => panic!("Unknown channel type"),
-            Err(err) => panic!("Error when opening channel: {}", err),
+            Ok(_) => return Err(Error::new(ErrorKind::Other, "Unknown channel type")),
+            Err(err) => return Err(err),
         };
 
         let mut eth_buf = vec![0; 42];

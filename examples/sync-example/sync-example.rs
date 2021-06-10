@@ -33,15 +33,15 @@ fn resolve_advanced(mac_addr: MacAddr, ip_addr: Ipv4Addr) {
     client's mac_to_ip and ip_to_mac methods. 
     */ 
 
-    let arp_request = ArpMessage::new_arp_request(iface.get_mac().into(), iface.get_ip(), ip_addr);
-    let result = client.send_request(None, arp_request).unwrap();
+    let arp_request = ArpMessage::new_arp_request(iface.get_mac().into(), iface.get_ip().unwrap(), ip_addr);
+    let result = client.send_message(None, arp_request).unwrap();
     println!(
         "Advanced: IP for MAC {} is {}",
         mac_addr, result.target_protocol_address
     );
 
     let rarp_request = ArpMessage::new_rarp_request(iface.get_mac().into(), mac_addr);
-    let result = client.send_request(None, rarp_request).unwrap();
+    let result = client.send_message(None, rarp_request).unwrap();
     println!(
         "Advanced: MAC for IP {} is {}",
         ip_addr, result.target_hardware_address
