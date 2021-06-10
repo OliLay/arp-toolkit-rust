@@ -1,5 +1,5 @@
-use pnet::datalink::{interfaces, NetworkInterface};
-use std::net::{IpAddr, Ipv4Addr};
+use pnet::datalink::{Channel, DataLinkReceiver, DataLinkSender, NetworkInterface, channel, interfaces};
+use std::{io::{Error, ErrorKind}, net::{IpAddr, Ipv4Addr}};
 
 /// Represents a network interface. 
 /// Wraps pnet's `NetworkInterface` struct for better convenience.
@@ -43,14 +43,23 @@ impl Interface {
             .unwrap()
     }
 
-    // Returns the MAC address assigned to the interface.
+    /// Returns the MAC address assigned to the interface.
     pub fn get_mac(&self) -> MacAddr {
         self.network_interface.as_ref().unwrap().mac.unwrap().into()
     }
 
-    // Returns the raw `pnet` interface instance related to the interface.
+    /// Returns the raw `pnet` interface instance related to the interface.
     pub fn get_raw_interface(&self) -> &NetworkInterface {
         &self.network_interface.as_ref().unwrap()
+    }
+
+    /// Creates and returns a new Ethernet (tx, rx) channel pair on the interface.
+    pub fn create_tx_rx_channels(&self) -> Result<(Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>), Error> {
+        match channel(&self.get_raw_interface(), Default::default()) {
+            Ok(Channel::Ethernet(tx, rx)) => Ok((tx, rx)),
+            Ok(_) => return Err(Error::new(ErrorKind::Other, "Unknown channel type")),
+            Err(err) => return Err(err),
+        }
     }
 
     fn get_all_interfaces() -> Vec<NetworkInterface> {

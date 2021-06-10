@@ -1,20 +1,22 @@
 use crate::interfaces::{Interface, MacAddr};
-use std::{io::{Error, ErrorKind}, net::Ipv4Addr, u16};
+use std::{
+    convert::TryFrom,
+    io::{Error, ErrorKind},
+    net::Ipv4Addr,
+    u16,
+};
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
-use pnet::{
-    datalink::{channel, Channel},
-    packet::{
-        arp::{ArpHardwareTypes, ArpOperation, ArpPacket, MutableArpPacket},
-        ethernet::{
-            EtherType,
-            EtherTypes::{self},
-            MutableEthernetPacket,
-        },
-        MutablePacket, Packet,
+use pnet::packet::{
+    arp::{ArpHardwareTypes, ArpOperation, ArpPacket, MutableArpPacket},
+    ethernet::{
+        EtherType,
+        EtherTypes::{self},
+        MutableEthernetPacket,
     },
+    MutablePacket, Packet,
 };
 
 pub struct ArpMessage {
@@ -125,9 +127,8 @@ impl ArpMessage {
     /// # Errors
     /// Returns an error when sending fails.
     pub fn send(&self, interface: &Interface) -> Result<(), Error> {
-        let mut tx = match channel(&interface.get_raw_interface(), Default::default()) {
-            Ok(Channel::Ethernet(tx, _)) => tx,
-            Ok(_) => return Err(Error::new(ErrorKind::Other, "Unknown channel type")),
+        let mut tx = match interface.create_tx_rx_channels() {
+            Ok((tx, _)) => tx,
             Err(err) => return Err(err),
         };
 
@@ -157,24 +158,31 @@ impl ArpMessage {
     }
 }
 
-impl From<ArpPacket<'_>> for ArpMessage {
-    fn from(arp_packet: ArpPacket) -> Self {
+impl TryFrom<ArpPacket<'_>> for ArpMessage {
+    type Error = Error;
+
+    fn try_from(arp_packet: ArpPacket<'_>) -> Result<Self, Self::Error> {
         let operation_raw = arp_packet.get_operation().0;
         let operation = match FromPrimitive::from_u16(operation_raw) {
             Some(op) => op,
-            None => panic!(
-                "Could not cast operation raw value {} to enum.",
-                operation_raw
-            ),
+            None => {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    format!(
+                        "Could not cast operation raw value {} to enum.",
+                        operation_raw
+                    ),
+                ))
+            }
         };
 
-        ArpMessage::new(
+        Ok(ArpMessage::new(
             arp_packet.get_protocol_type(),
             arp_packet.get_sender_hw_addr().into(),
             arp_packet.get_sender_proto_addr(),
             arp_packet.get_target_hw_addr().into(),
             arp_packet.get_target_proto_addr(),
             operation,
-        )
+        ))
     }
 }

@@ -1,12 +1,13 @@
 use crate::interfaces::MacAddr;
 use crate::{arp::ArpMessage, interfaces::Interface};
 use pnet::{
-    datalink::{channel, Channel, DataLinkReceiver},
+    datalink::DataLinkReceiver,
     packet::{
         arp::ArpPacket,
         ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket},
     },
 };
+use std::convert::TryInto;
 use std::time::Duration;
 use std::{
     io::{Error, ErrorKind},
@@ -38,11 +39,7 @@ impl ArpClient {
 
     /// Create an ARP client on the `interface` given.
     pub fn new_with_iface(interface: &Interface) -> Self {
-        let rx = match channel(&interface.get_raw_interface(), Default::default()) {
-            Ok(Channel::Ethernet(_, rx)) => rx,
-            Ok(_) => panic!("Unknown channel type"),
-            Err(err) => panic!("Error when opening channel: {}", err),
-        };
+        let (_, rx) = interface.create_tx_rx_channels().unwrap();
 
         ArpClient {
             rx_channel: rx,
@@ -63,7 +60,7 @@ impl ArpClient {
     }
 
     /// Send an ARP `message` with the given `timeout`, and perform an arbitrary check `check_answer` on the answer.
-    /// Using `check_answer`, you can check if the received message is related to your previously sent message if needed.
+    /// Using `check_answer`, you can check if the received tmessage is related to your previously sent message if needed.
     /// Returns the first ARP message received that satisfies `check_answer`.
     #[maybe_async::maybe_async]
     pub async fn send_message_with_check<T>(
@@ -164,9 +161,12 @@ impl ArpClient {
                         ArpPacket::new(&bytes[MutableEthernetPacket::minimum_packet_size()..])
                             .unwrap();
 
-                    return Some(arp_packet.into());
+                    match arp_packet.try_into() {
+                        Ok(arp_packet) => return Some(arp_packet),
+                        Err(_) => {}
+                    }
                 }
-                _ => {},
+                _ => {}
             }
         }
     }
