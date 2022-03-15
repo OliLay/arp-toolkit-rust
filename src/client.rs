@@ -55,7 +55,7 @@ impl ArpClient {
         timeout: Option<Duration>,
         message: ArpMessage,
     ) -> Result<ArpMessage, Error> {
-        self.send_message_with_check(timeout, message, &|arp_message| Some(arp_message))
+        self.send_message_with_check(timeout, message, |arp_message| Some(arp_message))
             .await
     }
 
@@ -67,7 +67,7 @@ impl ArpClient {
         &mut self,
         timeout: Option<Duration>,
         message: ArpMessage,
-        check_answer: &dyn Fn(ArpMessage) -> Option<T>,
+        check_answer: impl Fn(ArpMessage) -> Option<T>,
     ) -> Result<T, Error> {
         let unpacked_timeout = match timeout {
             Some(t) => t,
@@ -108,7 +108,7 @@ impl ArpClient {
             ip_addr,
         );
 
-        self.send_message_with_check(timeout, message, &|arp_message| {
+        self.send_message_with_check(timeout, message, |arp_message| {
             return if arp_message.source_protocol_address == ip_addr {
                 Some(arp_message.source_hardware_address.into())
             } else {
@@ -129,7 +129,7 @@ impl ArpClient {
         let message =
             ArpMessage::new_rarp_request(self.interface.get_mac().into(), mac_addr.into());
 
-        self.send_message_with_check(timeout, message, &|arp_message| {
+        self.send_message_with_check(timeout, message, |arp_message| {
             let source_mac: MacAddr = arp_message.source_hardware_address.into();
             if source_mac == mac_addr {
                 Some(arp_message.target_protocol_address)
