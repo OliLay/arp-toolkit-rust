@@ -19,7 +19,7 @@ async fn start() {
 }
 
 async fn resolve_simple(mac_addr: MacAddr, ip_addr: Ipv4Addr) {
-    let mut client = ArpClient::new();
+    let mut client = ArpClient::new().unwrap();
 
     let result = client.mac_to_ip(mac_addr, None);
     println!(
@@ -37,8 +37,8 @@ async fn resolve_simple(mac_addr: MacAddr, ip_addr: Ipv4Addr) {
 }
 
 async fn resolve_advanced(mac_addr: MacAddr, ip_addr: Ipv4Addr) {
-    let iface = Interface::new_by_name("enp4s0").unwrap();
-    let mut client = ArpClient::new_with_iface(&iface);
+    let iface = Interface::new_by_name("enx00e04ca9cd19").unwrap();
+    let mut client = ArpClient::new_with_iface(&iface).unwrap();
 
     /*
     This is just for demonstrating the API.

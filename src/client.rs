@@ -23,27 +23,30 @@ pub struct ArpClient {
 
 impl ArpClient {
     /// Create an ARP client on a guessed, "best-suited" interface.
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, Error> {
         ArpClient::new_with_iface(&Interface::new())
     }
 
     /// Create an ARP client on the interface with the name `iface_name`.
-    pub fn new_with_iface_name(iface_name: &str) -> Option<Self> {
+    pub fn new_with_iface_name(iface_name: &str) -> Result<Self, Error> {
         let iface = Interface::new_by_name(iface_name);
 
         match iface {
-            Some(iface) => Some(ArpClient::new_with_iface(&iface)),
-            None => None,
+            Some(iface) => ArpClient::new_with_iface(&iface),
+            None => Err(Error::new(ErrorKind::NotFound, "No such interface.")),
         }
     }
 
     /// Create an ARP client on the `interface` given.
-    pub fn new_with_iface(interface: &Interface) -> Self {
-        let (_, rx) = interface.create_tx_rx_channels().unwrap();
+    pub fn new_with_iface(interface: &Interface) -> Result<Self, Error> {
+        let result = interface.create_tx_rx_channels();
 
-        ArpClient {
-            rx_channel: rx,
-            interface: interface.clone(),
+        match result {
+            Ok((_, rx)) => Ok(ArpClient {
+                rx_channel: rx,
+                interface: interface.clone(),
+            }),
+            Err(err) => Err(err),
         }
     }
 
