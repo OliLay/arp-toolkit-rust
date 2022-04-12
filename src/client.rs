@@ -153,7 +153,7 @@ impl ArpClient {
     #[maybe_async::maybe_async]
     pub async fn receive_next(&mut self) -> Option<ArpMessage> {
         loop {
-            let rx_ethernet_packet = self.next_ethernet_frame();
+            let rx_ethernet_packet = self.next_ethernet_frame().await;
 
             match rx_ethernet_packet {
                 Some((packet, bytes))
@@ -174,7 +174,8 @@ impl ArpClient {
         }
     }
 
-    fn next_ethernet_frame(&mut self) -> Option<(EthernetPacket, &[u8])> {
+    #[maybe_async::maybe_async]
+    async fn next_ethernet_frame(&mut self) -> Option<(EthernetPacket<'_>, &[u8])> {
         let rx_bytes = match self.rx_channel.next() {
             Ok(rx_bytes) => rx_bytes,
             Err(_) => return None,
