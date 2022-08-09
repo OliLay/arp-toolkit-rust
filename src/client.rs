@@ -149,7 +149,7 @@ impl ArpClient {
         arp_message.send(&self.interface)
     }
 
-    /// Returns the next ARP message received. Doesn't return if no ARP message is received.
+    /// Returns the next ARP message received.
     #[maybe_async::maybe_async]
     pub async fn receive_next(&mut self) -> Option<ArpMessage> {
         loop {
@@ -166,10 +166,10 @@ impl ArpClient {
 
                     match arp_packet.try_into() {
                         Ok(arp_packet) => return Some(arp_packet),
-                        Err(_) => {}
+                        Err(_) => return None
                     }
                 }
-                _ => {}
+                _ => return None,
             }
         }
     }
