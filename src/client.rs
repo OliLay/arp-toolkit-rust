@@ -149,28 +149,26 @@ impl ArpClient {
         arp_message.send(&self.interface)
     }
 
-    /// Returns the next ARP message received.
+    /// Returns when the next Ethernet frame has been received. If this frame contains an ARP message,
+    /// returns this message, else returns None.
     #[maybe_async::maybe_async]
     pub async fn receive_next(&mut self) -> Option<ArpMessage> {
-        loop {
-            let rx_ethernet_packet = self.next_ethernet_frame().await;
+        let rx_ethernet_packet = self.next_ethernet_frame().await;
 
-            match rx_ethernet_packet {
-                Some((packet, bytes))
-                    if packet.get_ethertype() == EtherTypes::Arp
-                        || packet.get_ethertype() == EtherTypes::Rarp =>
-                {
-                    let arp_packet =
-                        ArpPacket::new(&bytes[MutableEthernetPacket::minimum_packet_size()..])
-                            .unwrap();
+        match rx_ethernet_packet {
+            Some((packet, bytes))
+                if packet.get_ethertype() == EtherTypes::Arp
+                    || packet.get_ethertype() == EtherTypes::Rarp =>
+            {
+                let arp_packet =
+                    ArpPacket::new(&bytes[MutableEthernetPacket::minimum_packet_size()..]).unwrap();
 
-                    match arp_packet.try_into() {
-                        Ok(arp_packet) => return Some(arp_packet),
-                        Err(_) => return None
-                    }
+                match arp_packet.try_into() {
+                    Ok(arp_packet) => return Some(arp_packet),
+                    Err(_) => return None,
                 }
-                _ => return None,
             }
+            _ => return None,
         }
     }
 

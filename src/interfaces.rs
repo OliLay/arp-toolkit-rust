@@ -4,6 +4,7 @@ use pnet::datalink::{
 use std::{
     io::{Error, ErrorKind},
     net::{IpAddr, Ipv4Addr},
+    time::Duration,
 };
 
 /// Represents a network interface.
@@ -62,11 +63,12 @@ impl Interface {
     pub fn create_tx_rx_channels(
         &self,
     ) -> Result<(Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>), Error> {
-        let config = pnet::datalink::Config {
-            read_timeout: Some(std::time::Duration::ZERO),
+        let channel_config = pnet::datalink::Config {
+            read_timeout: Some(Duration::ZERO),
             ..Default::default()
         };
-        match channel(&self.get_raw_interface(), config) {
+
+        match channel(&self.get_raw_interface(), channel_config) {
             Ok(Channel::Ethernet(tx, rx)) => Ok((tx, rx)),
             Ok(_) => return Err(Error::new(ErrorKind::Other, "Unknown channel type")),
             Err(err) => return Err(err),
