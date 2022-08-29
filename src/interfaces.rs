@@ -1,7 +1,13 @@
-use pnet::datalink::{Channel, DataLinkReceiver, DataLinkSender, NetworkInterface, channel, interfaces};
-use std::{io::{Error, ErrorKind}, net::{IpAddr, Ipv4Addr}};
+use pnet::datalink::{
+    channel, interfaces, Channel, DataLinkReceiver, DataLinkSender, NetworkInterface,
+};
+use std::{
+    io::{Error, ErrorKind},
+    net::{IpAddr, Ipv4Addr},
+    time::Duration,
+};
 
-/// Represents a network interface. 
+/// Represents a network interface.
 /// Wraps pnet's `NetworkInterface` struct for better convenience.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Interface {
@@ -38,7 +44,7 @@ impl Interface {
             .find(|ip| ip.is_ipv4())
             .map(|ip| match ip.ip() {
                 IpAddr::V4(ip) => Some(ip),
-                _ => None
+                _ => None,
             })
             .unwrap()
     }
@@ -54,8 +60,15 @@ impl Interface {
     }
 
     /// Creates and returns a new Ethernet (tx, rx) channel pair on the interface.
-    pub fn create_tx_rx_channels(&self) -> Result<(Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>), Error> {
-        match channel(&self.get_raw_interface(), Default::default()) {
+    pub fn create_tx_rx_channels(
+        &self,
+    ) -> Result<(Box<dyn DataLinkSender>, Box<dyn DataLinkReceiver>), Error> {
+        let channel_config = pnet::datalink::Config {
+            read_timeout: Some(Duration::ZERO),
+            ..Default::default()
+        };
+
+        match channel(&self.get_raw_interface(), channel_config) {
             Ok(Channel::Ethernet(tx, rx)) => Ok((tx, rx)),
             Ok(_) => return Err(Error::new(ErrorKind::Other, "Unknown channel type")),
             Err(err) => return Err(err),
