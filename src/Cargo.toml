@@ -1,6 +1,6 @@
 [package]
 name = "arp-toolkit"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Oliver Layer <olilay@live.de>"]
 edition = "2018"
 license = "MIT"
@@ -18,7 +18,7 @@ name = "libarp"
 path = "lib.rs"
 
 [dependencies]
-pnet = "0.28"
+pnet = {version = "0.31", features=["std"]}
 num-traits = "0.2"
 num-derive = "0.3"
 maybe-async = {version = "0.2.6", features=[]}
