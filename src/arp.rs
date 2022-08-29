@@ -30,7 +30,7 @@ pub struct ArpMessage {
     pub operation: Operation,
 }
 
-#[derive(Copy, Clone, FromPrimitive)]
+#[derive(Copy, Clone, FromPrimitive, PartialEq)]
 pub enum Operation {
     ArpRequest = 0x1,
     ArpResponse = 0x2,

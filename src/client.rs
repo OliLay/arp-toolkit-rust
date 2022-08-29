@@ -1,3 +1,4 @@
+use crate::arp;
 use crate::interfaces::MacAddr;
 use crate::{arp::ArpMessage, interfaces::Interface};
 use pnet::{
@@ -112,7 +113,9 @@ impl ArpClient {
         );
 
         self.send_message_with_check(timeout, message, |arp_message| {
-            return if arp_message.source_protocol_address == ip_addr {
+            return if arp_message.source_protocol_address == ip_addr
+                && arp_message.operation == arp::Operation::ArpResponse
+            {
                 Some(arp_message.source_hardware_address.into())
             } else {
                 None
@@ -134,7 +137,8 @@ impl ArpClient {
 
         self.send_message_with_check(timeout, message, |arp_message| {
             let source_mac: MacAddr = arp_message.source_hardware_address.into();
-            if source_mac == mac_addr {
+
+            if source_mac == mac_addr && arp_message.operation == arp::Operation::RarpResponse {
                 Some(arp_message.target_protocol_address)
             } else {
                 None
