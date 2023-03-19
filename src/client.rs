@@ -25,7 +25,7 @@ pub struct ArpClient {
 impl ArpClient {
     /// Create an ARP client on a guessed, "best-suited" interface.
     pub fn new() -> Result<Self, Error> {
-        ArpClient::new_with_iface(&Interface::new())
+        ArpClient::new_with_iface(&Interface::new()?)
     }
 
     /// Create an ARP client on the interface with the name `iface_name`.
@@ -107,8 +107,8 @@ impl ArpClient {
         timeout: Option<Duration>,
     ) -> Result<MacAddr, Error> {
         let message = ArpMessage::new_arp_request(
-            self.interface.get_mac().into(),
-            self.interface.get_ip().unwrap(),
+            self.interface.get_mac()?,
+            self.interface.get_ip()?,
             ip_addr,
         );
 
@@ -133,7 +133,7 @@ impl ArpClient {
         timeout: Option<Duration>,
     ) -> Result<Ipv4Addr, Error> {
         let message =
-            ArpMessage::new_rarp_request(self.interface.get_mac().into(), mac_addr.into());
+            ArpMessage::new_rarp_request(self.interface.get_mac()?.into(), mac_addr.into());
 
         self.send_message_with_check(timeout, message, |arp_message| {
             let source_mac: MacAddr = arp_message.source_hardware_address.into();

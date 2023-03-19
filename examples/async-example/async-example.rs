@@ -49,14 +49,14 @@ async fn resolve_advanced(mac_addr: MacAddr, ip_addr: Ipv4Addr) {
     */
 
     let arp_request =
-        ArpMessage::new_arp_request(iface.get_mac().into(), iface.get_ip().unwrap(), ip_addr);
+        ArpMessage::new_arp_request(iface.get_mac().unwrap().into(), iface.get_ip().unwrap(), ip_addr);
     let result = client.send_message(None, arp_request).await.unwrap();
     println!(
         "Advanced: IP for MAC {} is {}",
         mac_addr, result.target_protocol_address
     );
 
-    let rarp_request = ArpMessage::new_rarp_request(iface.get_mac().into(), mac_addr);
+    let rarp_request = ArpMessage::new_rarp_request(iface.get_mac().unwrap().into(), mac_addr);
     let result = client.send_message(None, rarp_request).await.unwrap();
     println!(
         "Advanced: MAC for IP {} is {}",

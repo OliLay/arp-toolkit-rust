@@ -11,14 +11,20 @@ use std::{
 /// Wraps pnet's `NetworkInterface` struct for better convenience.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Interface {
-    network_interface: Option<NetworkInterface>,
+    network_interface: NetworkInterface,
 }
 
 impl Interface {
     /// Selects the first "best-suited" interface found.
-    pub fn new() -> Self {
-        Interface {
-            network_interface: Interface::get_interface_by_guess(),
+    pub fn new() -> Result<Self, Error> {
+        match Interface::get_interface_by_guess() {
+            Some(iface) => Ok(Interface {
+                network_interface: iface,
+            }),
+            None => Err(Error::new(
+                ErrorKind::NotConnected,
+                "Could not get any network interface.",
+            )),
         }
     }
 
@@ -27,7 +33,7 @@ impl Interface {
         let iface = Interface::get_interface_by_name(&interface_name);
 
         match iface {
-            Some(_) => Some(Interface {
+            Some(iface) => Some(Interface {
                 network_interface: iface,
             }),
             None => None,
@@ -35,10 +41,9 @@ impl Interface {
     }
 
     /// Returns the IPv4 address of the interface.
-    pub fn get_ip(&self) -> Option<Ipv4Addr> {
-        self.network_interface
-            .as_ref()
-            .unwrap()
+    pub fn get_ip(&self) -> Result<Ipv4Addr, Error> {
+        let ip = self
+            .network_interface
             .ips
             .iter()
             .find(|ip| ip.is_ipv4())
@@ -46,17 +51,31 @@ impl Interface {
                 IpAddr::V4(ip) => Some(ip),
                 _ => None,
             })
-            .unwrap()
+            .unwrap_or(None);
+
+        match ip {
+            Some(ip) => Ok(ip),
+            None => Err(Error::new(
+                ErrorKind::AddrNotAvailable,
+                "Currently selected interface does not have any IP address assigned.",
+            )),
+        }
     }
 
     /// Returns the MAC address assigned to the interface.
-    pub fn get_mac(&self) -> MacAddr {
-        self.network_interface.as_ref().unwrap().mac.unwrap().into()
+    pub fn get_mac(&self) -> Result<MacAddr, Error> {
+        match self.network_interface.mac {
+            Some(mac) => Ok(mac.into()),
+            None => Err(Error::new(
+                ErrorKind::AddrNotAvailable,
+                "Currently selected interface does not have any MAC address assigned.",
+            )),
+        }
     }
 
     /// Returns the raw `pnet` interface instance related to the interface.
     pub fn get_raw_interface(&self) -> &NetworkInterface {
-        &self.network_interface.as_ref().unwrap()
+        &self.network_interface
     }
 
     /// Creates and returns a new Ethernet (tx, rx) channel pair on the interface.
