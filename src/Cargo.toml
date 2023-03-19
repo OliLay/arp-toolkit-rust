@@ -1,6 +1,6 @@
 [package]
 name = "arp-toolkit"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Oliver Layer <olilay@live.de>"]
 edition = "2018"
 license = "MIT"
